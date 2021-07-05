@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<greetings>
+  <greeting name ="Привет">
+  </greeting>
+  <greeting name ="Здраствуйте">
+  </greeting>
+  <greeting name ="Hello!">
+  </greeting>
+  <greeting name ="Привiт">
+  </greeting>
+  <greeting name ="Прывiтанне">
+  </greeting>
+</greetings>

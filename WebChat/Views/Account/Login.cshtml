@@ -1,0 +1,23 @@
+﻿@model WebChat.ViewModels.LoginViewModel
+    
+    <h2>Вход в приложение</h2>
+    <form  method="post" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">
+        <div  asp-validation-summary="ModelOnly"></div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="Email"></label><br />
+            <input class="form-control" asp-for="Email" />
+            <span asp-validation-for="Email"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="Password"></label><br />
+            <input class="form-control" asp-for="Password" />
+            <span asp-validation-for="Password"></span>
+        </div>
+        <div class="mb-3 form-check">
+            <label class="form-check-label" for="exampleCheck1" asp-for="RememberMe"></label>
+            <input class="form-check-input" id="exampleCheck1" asp-for="RememberMe" />
+        </div>
+        <div>
+            <input type="submit" class="btn btn-primary" value="Войти" />
+        </div>
+    </form>

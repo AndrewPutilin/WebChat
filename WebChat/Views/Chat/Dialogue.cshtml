@@ -1,0 +1,73 @@
+﻿@model WebChat.ViewModels.ChatViewModel
+
+<div class="container">
+
+    <div class="row">
+        <div class="col-6">
+            <form method="post" asp-controller="Chat" asp-action="DeleteChat">
+                <div>
+                    <input type="submit" class="btn btn-danger" value="Удалить" />
+                </div>
+            </form>
+        </div>
+        <div class="col-6">
+            <h3>@Model.NewChat.Name</h3>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="overflow-auto border border-5 border-primary">
+                <div style="height: 350px; width: 800px;">
+                    @if (Model.ChatMessаges is not null)
+                    {
+                        @foreach (var mes in Model.ChatMessаges)
+                        {
+                            <p>
+                                @mes.MesegeTime @mes.UserEmail @mes.MessageText @if (mes.UserEmail.Equals(Model.ThisUserEmail) && (DateTime.Now < (DateTime.Parse(mes.MesegeTime).AddDays(1.0))))
+                                {
+                                    <form method="post" asp-controller="Chat" asp-action="DeleteMassage" asp-route-messageId="@mes.Id"><div><input type="submit" class="btn btn-outline-primary" value="Удалить" /></div></form>}
+                                @if (mes.UserEmail != Model.ThisUserEmail && mes.CheckRead == false)
+                                {
+                                    <form method="post" asp-controller="Chat" asp-action="ReadMessage" asp-route-messageId="@mes.Id"><div><input type="submit" class="btn btn-outline-primary" value="Прочитать" /></div></form>
+                                }
+
+                            </p>
+
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <form>
+                <select style="width: 300px" class="form-select form-select-sm" aria-label=".form-select-sm example">
+                    <option selected>Участники</option>
+                    @foreach (var user in Model.NewChat.Users.Split(' '))
+                    {
+                        <option>@user </option>
+                    }
+                </select>
+                <br>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-6 col-md-4">
+            <form method="post" asp-controller="Chat" asp-action="SendMassege" asp-route-chatId="@Model.NewChat.Id">
+                <div>
+                    <input class="form-control" required name="messegeText" />
+                    <input type="submit" class="btn btn-primary" value="Отправить" />
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        
+    </div>
+    <div class="row">
+        
+    </div>
+</div>
+

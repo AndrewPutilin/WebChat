@@ -1,0 +1,28 @@
+﻿@model WebChat.ViewModels.RegisterViewModel
+<h2>Регистрация нового пользователя</h2>
+<form method="post" asp-controller="Account" asp-action="Register">
+    <div asp-validation-summary="ModelOnly"></div>
+    <div class="mb-3">
+        <label class="form-label" asp-for="Email"></label><br />
+        <input class="form-control" asp-for="Email" />
+        <span asp-validation-for="Email"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" asp-for="Year"></label><br />
+        <input class="form-control" asp-for="Year" />
+        <span asp-validation-for="Year"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" asp-for="Password"></label><br />
+        <input class="form-control" asp-for="Password" />
+        <span asp-validation-for="Password"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" asp-for="PasswordConfirm"></label><br />
+        <input class="form-control" asp-for="PasswordConfirm" />
+        <span asp-validation-for="PasswordConfirm"></span>
+    </div>
+    <div >
+        <input type="submit" class="btn btn-primary" value="Регистрация" />
+    </div>
+</form>

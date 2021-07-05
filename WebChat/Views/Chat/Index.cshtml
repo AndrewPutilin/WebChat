@@ -1,0 +1,47 @@
+﻿@model WebChat.ViewModels.ChatViewModel
+
+
+@{
+    ViewBag.Title = "Список чатов пользователей";
+}
+
+@if (User.Identity.IsAuthenticated)
+{
+    <table class="table table-success table-striped">
+        <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Number of users</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var chat in Model.AllChat)
+            {
+                
+                foreach (var user in chat.Users.Split(' '))
+                {
+                    if (user.Equals(Model.ThisUserEmail) && chat.Name[0]=='#')
+                    {
+                        <tr>
+                            <td>@chat.Name</td>
+                            <td>@chat.Users.Split(' ').Length</td>
+                            <td>
+                                <form method="post" asp-controller="Chat" asp-action="CreateGroupChat" asp-route-chatName="@chat.Id.ToString()">
+                                    <input type="submit" class="btn btn-primary" value="Продолжить" />
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div class="position-absolute top-50 start-50 translate-middle">
+        <a class="btn btn-lg btn-primary" asp-controller="Account" asp-action="Login">Вход</a>
+        <a class="btn btn-lg btn-primary" asp-controller="Account" asp-action="Register">Регистрация</a>
+    </div>
+}
