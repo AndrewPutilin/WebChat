@@ -1,0 +1,38 @@
+﻿@model IEnumerable<WebChat.Models.User>
+@{
+    ViewBag.Title = "Список пользователей";
+}
+
+@if (User.Identity.IsAuthenticated)
+{
+    <table class="table table-success table-striped">
+        <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Year</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Model)
+            {
+            <tr>
+                <td>@user.Email</td>
+                <td>@user.Year</td>
+                <td>
+                    <form method="post" asp-controller="Chat" asp-action="CreateChat" asp-route-id="@user.Id">
+                        <input type="submit" class="btn btn-primary" value="Написать" />
+                    </form>
+                </td>
+            </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div class="position-absolute top-50 start-50 translate-middle">
+        <a class="btn btn-lg btn-primary" asp-controller="Account" asp-action="Login">Вход</a>
+        <a class="btn btn-lg btn-primary" asp-controller="Account" asp-action="Register">Регистрация</a>
+    </div>
+}

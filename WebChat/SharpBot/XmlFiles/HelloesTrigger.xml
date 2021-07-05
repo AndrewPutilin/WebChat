@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8" ?> 
+<helloestriggers>
+  <helloetriggers name ="привет">
+  </helloetriggers>
+  <helloetriggers name ="здравствуй">
+  </helloetriggers>
+  <helloetriggers name ="здравствуйте">
+  </helloetriggers>
+  <helloetriggers name ="добрый день">
+  </helloetriggers>
+  <helloetriggers name ="добрый вечер">
+  </helloetriggers>
+  <helloetriggers name ="доброе утро">
+  </helloetriggers>
+  <helloetriggers name ="доброй ночи">
+  </helloetriggers>
+</helloestriggers>

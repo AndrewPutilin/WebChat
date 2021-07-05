@@ -1,0 +1,52 @@
+﻿@model WebChat.ViewModels.ChatViewModel
+
+<div class="position-absolute top-20 start-50 translate-middle-x">
+    <h3>@Model.NewChat.Name</h3>
+</div>
+
+<form class="position-absolute top-10 end-0">
+    <select style="width: 300px" class="form-select form-select-sm" aria-label=".form-select-sm example">
+        <option selected>Участники</option>
+        @foreach (var user in Model.NewChat.Users.Split(' '))
+        {
+            <option>@user </option>
+        }
+    </select>
+    <br>
+    <select style="width: 300px" class="form-select form-select-sm" aria-label=".form-select-sm example">
+        <option selected>Добавить</option>
+        <option value="1">One</option>
+        <option value="2">Two</option>
+        <option value="3">Three</option>
+    </select>
+</form>
+
+<form method="post" asp-controller="Chat" asp-action="DeleteChat">
+    <div>
+        <input type="submit" class="btn btn-danger btn-lg" value="Удалить" />
+    </div>
+</form>
+<br>
+<form method="post" asp-controller="Chat" asp-action="ExitFromChat">
+    <div>
+        <input type="submit" class="btn btn-danger btn-lg" value="Выйти" />
+    </div>
+</form>
+
+<form class="position-absolute top-50 start-50 translate-middle overflow-auto border border-5 border-primary">
+    <div style="height: 350px; width: 800px;">
+        @if (Model.ChatMessаges is not null)
+        {
+            @foreach (var mes in Model.ChatMessаges)
+            {
+                <p>@mes.MesegeTime @mes.UserEmail @mes.MessageText @if (mes.UserEmail.Equals(Model.ThisUserEmail) &&(DateTime.Now < (DateTime.Parse(mes.MesegeTime).AddDays(1.0)))) {<form method="post" asp-controller="Chat" asp-action="DeleteMassage" asp-route-messageId ="@mes.Id"><div><input type="submit" class="btn btn-outline-primary" value="Удалить"/></div></form> }</p>
+            }
+        }
+    </div>
+</form>
+<form class="position-absolute bottom-0 start-50 translate-middle-x mb-3" method="post" asp-controller="Chat" asp-action="SendMassege" asp-route-chatId="@Model.NewChat.Id">
+    <div>
+        <input class="form-control" required name="messegeText" />
+        <input type="submit" class="btn btn-primary" value="Отправить" />
+    </div>
+</form>
