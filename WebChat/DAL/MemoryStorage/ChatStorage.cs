@@ -8,15 +8,11 @@ namespace WebChat.DAL.MemoryStorage
 {
     public class ChatStorage : IChatStorage
     {
-        private List<Chat> chats;
-        private List<CheckLiveBackUser> checkBacks;
         private OperatorContext context;
 
         public ChatStorage()
         {
             context = new OperatorContext();
-            chats = context.Chats.OrderBy(c => c.Id).ToList();
-            checkBacks = context.CheckLiveBackUsers.OrderBy(cb => cb.Id).ToList();
         }
 
         public Chat CreateGroupChat(string groupName, string creatorUser)
@@ -29,19 +25,16 @@ namespace WebChat.DAL.MemoryStorage
             context.Chats.Add(newChat);
             context.SaveChanges();
 
-            chats = context.Chats.OrderBy(c => c.Id).ToList();
-            newChat.Id = chats.Last().Id;
+            newChat.Id = context.Chats.Last().Id;
 
             AddCheckLive(newChat, creatorUser);
-
-            checkBacks = context.CheckLiveBackUsers.OrderBy(ch => ch.Id).ToList();
 
             return newChat;
         }
 
         public Chat GetChatByUsers(string users)
         {
-            return chats.Where(c => c.Users.Equals(users)).FirstOrDefault();
+            return context.Chats.Where(c => c.Users.Equals(users)).FirstOrDefault();
         }
 
         public void AddChat(Chat chat)
@@ -56,7 +49,7 @@ namespace WebChat.DAL.MemoryStorage
 
             if (context.Chats is not null)
             {
-                foreach (var c in chats)
+                foreach (var c in context.Chats)
                 {
                     if (c.Users is not null && chat.Users is not null)
                     {
@@ -76,10 +69,6 @@ namespace WebChat.DAL.MemoryStorage
                     context.Chats.Add(chat);
 
                     context.SaveChanges();
-
-                    chats = context.Chats.OrderBy(c => c.Id).ToList();
-
-                    chat.Id = chats.Last().Id;
                 }
             }
             else
@@ -87,10 +76,6 @@ namespace WebChat.DAL.MemoryStorage
                 context.Chats.Add(chat);
 
                 context.SaveChanges();
-
-                chats = context.Chats.OrderBy(c => c.Id).ToList();
-
-                chat.Id = chats.Last().Id;
             }
 
         }
@@ -106,10 +91,6 @@ namespace WebChat.DAL.MemoryStorage
             context.CheckLiveBackUsers.RemoveRange(listChecks);
 
             context.SaveChanges();
-
-            chats = context.Chats.OrderBy(c => c.Id).ToList();
-
-            checkBacks = context.CheckLiveBackUsers.OrderBy(ch => ch.Id).ToList();
         }
 
         public void AddCheckLive(Chat chat, string userEmail)
@@ -125,10 +106,6 @@ namespace WebChat.DAL.MemoryStorage
             context.CheckLiveBackUsers.Add(newCheckLive);
 
             context.SaveChanges();
-
-            chats = context.Chats.OrderBy(c => c.Id).ToList();
-
-            checkBacks = context.CheckLiveBackUsers.OrderBy(ch => ch.Id).ToList();
         }
 
         public void AddUser(Chat chat, string userEmail)
@@ -154,15 +131,11 @@ namespace WebChat.DAL.MemoryStorage
             context.Messages.Add(systemMessage);
 
             context.SaveChanges();
-
-            chats = context.Chats.OrderBy(c => c.Id).ToList();
-
-            checkBacks = context.CheckLiveBackUsers.OrderBy(ch => ch.Id).ToList();
         }
 
         public void DeleteUser(Chat chat, string user)
         {
-            var maxCheckCome = checkBacks.Where(check => check.UserEmail.Equals(user) && check.Chat.Id==chat.Id).OrderByDescending(c => c.TimeComeIn).FirstOrDefault();
+            var maxCheckCome = context.CheckLiveBackUsers.Where(check => check.UserEmail.Equals(user) && check.Chat.Id==chat.Id).OrderByDescending(c => c.TimeComeIn).FirstOrDefault();
 
             if (maxCheckCome.TimeLeave is null)
             {
@@ -179,10 +152,6 @@ namespace WebChat.DAL.MemoryStorage
                 context.Messages.Add(systemMessage);
 
                 context.SaveChanges();
-
-                chats = context.Chats.OrderBy(c => c.Id).ToList();
-
-                checkBacks = context.CheckLiveBackUsers.OrderBy(ch => ch.Id).ToList();
             }
         }
 
@@ -193,14 +162,19 @@ namespace WebChat.DAL.MemoryStorage
 
         public IReadOnlyCollection<CheckLiveBackUser> GetAllCheckLives(int chatId)
         {
-            if (checkBacks is not null) return checkBacks.Where(c => c.Chat.Id == chatId).ToList();
+            if (context.CheckLiveBackUsers is not null) return context.CheckLiveBackUsers.Where(c => c.Chat.Id == chatId).ToList();
 
             else return null;
         }
 
         public IReadOnlyCollection<Chat> GetAll()
         {
-            return chats;
+            return context.Chats.OrderBy(c => c.Id).ToList();
+        }
+
+        public IReadOnlyCollection<Chat> GetAll(string userEmail)
+        {
+            return context.Chats.Where(ch=>ch.Users.Contains(userEmail)).OrderBy(c => c.Id).ToList();
         }
     }
 }

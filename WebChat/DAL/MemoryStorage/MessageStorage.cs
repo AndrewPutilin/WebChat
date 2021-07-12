@@ -8,13 +8,11 @@ namespace WebChat.DAL.MemoryStorage
 {
     public class MessageStorage : IMessageStorage
     {
-        private List<Messаge> messаges;
         private OperatorContext context;
 
         public MessageStorage()
         {
             context = new OperatorContext();
-            this.messаges = context.Messages.OrderBy(c => c.MesegeTime).ToList();
         }
 
         public Messаge GetMessаgeById(int messageId)
@@ -25,15 +23,16 @@ namespace WebChat.DAL.MemoryStorage
             return message;
         }
 
-        public void ReadMessage(int messageId)
+        public void MarkMessageAsRead(int messageId)
         {
-            var readMessage = context.Messages.FirstOrDefault(m=>m.Id == messageId);
+            var message = context.Messages.FirstOrDefault(m => m.Id == messageId);
 
-            readMessage.CheckRead = true;
+            if (message is not null)
+            {
+                message.CheckRead = true;
 
-            context.SaveChanges();
-
-            messаges = context.Messages.OrderBy(m => m.MesegeTime).ToList();
+                context.SaveChanges();
+            }
         }
 
         public void AddMessage(Messаge messаge)
@@ -47,8 +46,6 @@ namespace WebChat.DAL.MemoryStorage
             context.Messages.Add(messаge);
 
             context.SaveChanges();
-
-            messаges = context.Messages.OrderBy(m => m.MesegeTime).ToList();
         }
 
         public void DeleteMessage(Messаge messаge)
@@ -56,20 +53,18 @@ namespace WebChat.DAL.MemoryStorage
             context.Messages.Remove(messаge);
 
             context.SaveChanges();
-
-            messаges = context.Messages.OrderBy(m => m.MesegeTime).ToList();
         }
 
-        public List<Messаge> GetMesegesByChat(int chatId)
+        public List<Messаge> GetMessagesByChat(int chatId)
         {
-                var chat = context.Chats.FirstOrDefault(c => c.Id == chatId);
+            var chat = context.Chats.FirstOrDefault(c => c.Id == chatId);
 
-                return context.Messages.Where(m => m.Chat == chat).OrderBy(mes => mes.Id).ToList();
+            return context.Messages.Where(m => m.Chat == chat).OrderBy(mes => mes.Id).ToList();
         }
 
         public IReadOnlyCollection<Messаge> GetAll()
         {
-            return messаges;
+            return context.Messages.ToList();
         }
     }
 }

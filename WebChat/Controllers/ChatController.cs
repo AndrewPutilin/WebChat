@@ -30,11 +30,16 @@ namespace WebChat.Controllers
         /// <param name="messageId"></param>
         /// <returns></returns>
         [HttpPost]
-        public IActionResult ReadMessage(int messageId)
-        {
+        public IActionResult ReadMessage(int messageId, int chatId)
+        {           
+
+            _chatService.MarkMessageAsRead(messageId);
+
             var model = JsonSerializer.Deserialize<ChatViewModel>(TempData["OurModel"].ToString());
 
-            model = _chatService.ReadMessage(model, messageId);
+            model.ChatMessаges = _chatService.GetMessаgesByChat(model.NewChat.Id);
+            model.CheckLiveBackUsers = _chatService.GetCheckLiveBackUsersByChat(model.NewChat.Id);
+            model.NewChat = _chatService.GetChatById(model.NewChat.Id);
 
             TempData["OurModel"] = JsonSerializer.Serialize(model);
 
@@ -59,18 +64,24 @@ namespace WebChat.Controllers
         [HttpGet]
         public IActionResult Index()
         {
-            var model = new ChatViewModel();
+            ChatViewModel model;
 
-            if (TempData["OurModel"] is not null)
+            var ourModel = TempData["OurModel"]?.ToString();
+            if (string.IsNullOrEmpty(ourModel))
             {
-                 model = JsonSerializer.Deserialize<ChatViewModel>(TempData["OurModel"].ToString());
+                model = new ChatViewModel();
             }
             else
             {
-                ClaimsPrincipal currentUser = this.User;
-                var currentUserEmail = currentUser.FindFirst(ClaimTypes.Email).Value;
+                model = JsonSerializer.Deserialize<ChatViewModel>(ourModel);
+            }
 
-                model = _chatService.Index(model, currentUserEmail);
+            if (model.ThisUserEmail is null)
+            {
+                var userEmail = this.User.FindFirst(ClaimTypes.Email).Value;
+
+                model.AllChat = _chatService.GetAllGroupChats(userEmail);
+                model.ThisUserEmail = userEmail;
             }
 
             TempData["OurModel"] = JsonSerializer.Serialize(model);
@@ -101,7 +112,9 @@ namespace WebChat.Controllers
         {
             var model = JsonSerializer.Deserialize<ChatViewModel>(TempData["OurModel"].ToString());
 
-            model = _chatService.GroupDialogue(model);
+            model.ChatMessаges = _chatService.GroupDialogue(model.ChatMessаges, model.CheckLiveBackUsers, model.NewChat.Id, model.ThisUserEmail);
+            model.CheckLiveBackUsers = _chatService.GetCheckLiveBackUsersByChat(model.NewChat.Id);
+            model.NewChat = _chatService.GetChatById(model.NewChat.Id);
 
             TempData["OurModel"] = JsonSerializer.Serialize(model);
 
@@ -118,7 +131,12 @@ namespace WebChat.Controllers
         {
             var model = JsonSerializer.Deserialize<ChatViewModel>(TempData["OurModel"].ToString());
 
-            model = _chatService.AddUserToChat(model, userName);
+            _chatService.AddUserToChat(model, userName);
+
+            model.ChatMessаges = _chatService.GetMessаgesByChat(model.NewChat.Id);
+            model.CheckLiveBackUsers = _chatService.GetCheckLiveBackUsersByChat(model.NewChat.Id);
+            model.AllChat = _chatService.GetAllChats();
+            model.NewChat = _chatService.GetChatById(model.NewChat.Id);
 
             TempData["OurModel"] = JsonSerializer.Serialize(model);
 
@@ -132,13 +150,10 @@ namespace WebChat.Controllers
         /// <returns></returns>
         [HttpPost]
         public IActionResult CreateGroupChat(string chatName)
-        {          
-            var model = new ChatViewModel();
+        {
+            var currentUserEmail = this.User.FindFirst(ClaimTypes.Email).Value;
 
-            ClaimsPrincipal currentUser = this.User;
-            var currentUserEmail = currentUser.FindFirst(ClaimTypes.Email).Value;
-
-            model = _chatService.CreateGroupChat(model, chatName, currentUserEmail);
+            var model = _chatService.CreateGroupChat(chatName, currentUserEmail);
 
             TempData["OurModel"] = JsonSerializer.Serialize(model);
 
@@ -156,7 +171,10 @@ namespace WebChat.Controllers
         {
             var model = JsonSerializer.Deserialize<ChatViewModel>(TempData["OurModel"].ToString());
 
-            model = _chatService.DeleteMessage(model, messageId);
+            _chatService.DeleteMessage(messageId);
+
+            model.ChatMessаges = _chatService.GetMessаgesByChat(model.NewChat.Id);
+            model.CheckLiveBackUsers = _chatService.GetCheckLiveBackUsersByChat(model.NewChat.Id);
             
             TempData["OurModel"] = JsonSerializer.Serialize(model);
 
@@ -177,7 +195,10 @@ namespace WebChat.Controllers
         {
             var model = JsonSerializer.Deserialize<ChatViewModel>(TempData["OurModel"].ToString());
 
-            model = _chatService.ExitFromChat(model);
+            _chatService.ExitFromChat(model.NewChat.Id, model.ThisUserEmail);
+
+            model.NewChat = _chatService.GetChatById(model.NewChat.Id);
+            model.CheckLiveBackUsers = _chatService.GetCheckLiveBackUsersByChat(model.NewChat.Id);
 
             TempData["OurModel"] = JsonSerializer.Serialize(model);
 
@@ -198,7 +219,9 @@ namespace WebChat.Controllers
         {
             var model = JsonSerializer.Deserialize<ChatViewModel>(TempData["OurModel"].ToString());
 
-            model = _chatService.DeleteChat(model);
+            _chatService.DeleteChat(model.AllChat, model.NewChat.Id);
+
+            model.AllChat = _chatService.GetAllChats();
 
             TempData["OurModel"] = JsonSerializer.Serialize(model);
 
@@ -216,12 +239,12 @@ namespace WebChat.Controllers
         {
             var model = JsonSerializer.Deserialize<ChatViewModel>(TempData["OurModel"].ToString());
 
-            ClaimsPrincipal currentUser = this.User;
-            var currentUserEmail = currentUser.FindFirst(ClaimTypes.Email).Value;
+            var currentUserEmail = this.User.FindFirst(ClaimTypes.Email).Value;
 
             model.ThisUserEmail = currentUserEmail;
-
-            model = _chatService.SendMessage(model, messegeText, chatId, currentUserEmail);
+            model.Bots=_chatService.SendMessage(model.Bots, model.ChatMessаges, model.CheckLiveBackUsers, messegeText, chatId, currentUserEmail);
+            model.ChatMessаges = _chatService.GetMessаgesByChat(model.NewChat.Id);
+            model.CheckLiveBackUsers = _chatService.GetCheckLiveBackUsersByChat(model.NewChat.Id);
 
             TempData["OurModel"] = JsonSerializer.Serialize(model);
 
@@ -241,14 +264,11 @@ namespace WebChat.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateChat(string id)
         {
-            var model = new ChatViewModel();
-
             User secondUser = await _userManager.FindByIdAsync(id);
 
-            ClaimsPrincipal currentUser = this.User;
-            var currentUserEmail = currentUser.FindFirst(ClaimTypes.Email).Value;
+            var currentUserEmail = this.User.FindFirst(ClaimTypes.Email).Value;
 
-            model = _chatService.CreateChat(model, id, currentUserEmail, secondUser);
+            var model = _chatService.CreateChat(id, currentUserEmail, secondUser);
 
             TempData["OurModel"] = JsonSerializer.Serialize(model);
 

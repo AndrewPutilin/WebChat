@@ -29,7 +29,7 @@
                                     <form method="post" asp-controller="Chat" asp-action="DeleteMassage" asp-route-messageId="@mes.Id"><div><input type="submit" class="btn btn-outline-primary" value="Удалить" /></div></form>}
                                 @if (mes.UserEmail != Model.ThisUserEmail && mes.CheckRead == false)
                                 {
-                                    <form method="post" asp-controller="Chat" asp-action="ReadMessage" asp-route-messageId="@mes.Id"><div><input type="submit" class="btn btn-outline-primary" value="Прочитать" /></div></form>
+                                    <form method="post" asp-controller="Chat" asp-action="ReadMessage" asp-route-messageId="@mes.Id" asp-route-chatId ="@mes.Chat.Id"><div><input type="submit" class="btn btn-outline-primary" value="Прочитать" /></div></form>
                                 }
 
                             </p>

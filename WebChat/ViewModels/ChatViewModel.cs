@@ -14,6 +14,6 @@ namespace WebChat.ViewModels
         public string CurrentChat { get; set; }
         public string ThisUserEmail { get; set; }
         public HashSet<ChatBot> Bots { get; set; }
-        public IReadOnlyCollection<CheckLiveBackUser> CheckLiveBackUsers { get; set; }
+        public List<CheckLiveBackUser> CheckLiveBackUsers { get; set; }
     }
 }

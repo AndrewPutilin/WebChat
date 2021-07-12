@@ -11,27 +11,32 @@ namespace WebChat.DAL.MemoryStorage
         /// <param name="messageId"></param>
         /// <returns></returns>
         Messаge GetMessаgeById(int messageId);
+
         /// <summary>
-        /// Читает сообщение
+        /// Пометить сообщения как прочитанное
         /// </summary>
         /// <param name="messageId"></param>
-        void ReadMessage(int messageId);
+        void MarkMessageAsRead(int messageId);
+
         /// <summary>
         /// Добавляет сообщение в чат
         /// </summary>
         /// <param name="messаge"></param>
         void AddMessage(Messаge messаge);
+
         /// <summary>
         /// Удаляет сообщение из чата
         /// </summary>
         /// <param name="messаge"></param>
         void DeleteMessage(Messаge messаge);
+
         /// <summary>
         /// Находит все сообщения в чате
         /// </summary>
         /// <param name="chatId"></param>
         /// <returns></returns>
-        List<Messаge> GetMesegesByChat(int chatId);
+        List<Messаge> GetMessagesByChat(int chatId);
+
         /// <summary>
         /// Возвращает все сообщения
         /// </summary>

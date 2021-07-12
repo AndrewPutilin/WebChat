@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using System.Threading.Tasks;
 using WebChat.Models;
 using WebChat.ViewModels;
@@ -52,6 +53,10 @@ namespace WebChat.Controllers
         [HttpGet]
         public IActionResult Login(string returnUrl = null)
         {
+            var model = new ChatViewModel();
+
+            TempData["OurModel"] = JsonSerializer.Serialize(model);
+
             return View(new LoginViewModel { ReturnUrl = returnUrl });
         }
 
@@ -81,6 +86,10 @@ namespace WebChat.Controllers
                 }
             }
 
+            var viewModel = new ChatViewModel();
+
+            TempData["OurModel"] = JsonSerializer.Serialize(viewModel);
+
             return View(model);
         }
 
@@ -88,6 +97,10 @@ namespace WebChat.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
+            var model = new ChatViewModel();
+
+            TempData["OurModel"] = JsonSerializer.Serialize(model);
+
             await _signInManager.SignOutAsync();
 
             return RedirectToAction("Index", "Home");

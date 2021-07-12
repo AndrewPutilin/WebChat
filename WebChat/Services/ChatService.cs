@@ -13,8 +13,8 @@ namespace WebChat.Services
 {
     public class ChatService : IChatService
     {
-        private  IChatStorage _chatStorage;
-        private  IMessageStorage _messageStorage;
+        private IChatStorage _chatStorage;
+        private IMessageStorage _messageStorage;
 
         public ChatService()
         {
@@ -22,204 +22,155 @@ namespace WebChat.Services
             _messageStorage = new MessageStorage();
         }
 
-        public ChatViewModel ReadMessage(ChatViewModel chatViewModel, int id)
+        public List<Chat> GetAllChats()
         {
-            _messageStorage.ReadMessage(id);
-
-            chatViewModel.ChatMessаges = _messageStorage.GetMesegesByChat(_messageStorage.GetMessаgeById(id).Chat.Id);
-
-            return chatViewModel;
+            return _chatStorage.GetAll().ToList();
         }
 
-        public ChatViewModel CreateGroupChat(ChatViewModel chatViewModel, string chatName, string currentUserEmail)
+        public void MarkMessageAsRead(int messageId)
         {
+            _messageStorage.MarkMessageAsRead(messageId);
+        }
+
+        public List<Messаge> GetMessages(int chatId)
+        {
+            return _messageStorage.GetMessagesByChat(chatId);
+        }
+
+        public ChatViewModel CreateGroupChat(string chatName, string currentUserEmail)
+        {
+            var model = new ChatViewModel();
+
             if (Int32.TryParse(chatName, out int id))
             {
-                chatViewModel.NewChat = _chatStorage.GetChatById(id);
+                model.NewChat = _chatStorage.GetChatById(id);
             }
 
             else
             {
-                chatViewModel.NewChat = _chatStorage.CreateGroupChat(chatName, currentUserEmail);
+                model.NewChat = _chatStorage.CreateGroupChat(chatName, currentUserEmail);
             }
 
+            model.AllChat = _chatStorage.GetAll();
+            model.ChatMessаges = new List<Messаge>();
+            model.Bots = new HashSet<ChatBot>();
+            model.ChatMessаges = _messageStorage.GetMessagesByChat(model.NewChat.Id);
+            model.CurrentChat = model.NewChat.Id.ToString();
+            model.ThisUserEmail = currentUserEmail;
+            model.CheckLiveBackUsers = _chatStorage.GetAllCheckLives(model.NewChat.Id).ToList();
 
-            chatViewModel.AllChat = _chatStorage.GetAll();
-            chatViewModel.ChatMessаges = new List<Messаge>();
-            chatViewModel.Bots = new HashSet<ChatBot>();
-            chatViewModel.ChatMessаges = _messageStorage.GetMesegesByChat(chatViewModel.NewChat.Id);
-            chatViewModel.CurrentChat = chatViewModel.NewChat.Id.ToString();
-            chatViewModel.ThisUserEmail = currentUserEmail;
-            chatViewModel.CheckLiveBackUsers = _chatStorage.GetAllCheckLives(chatViewModel.NewChat.Id);
-
-            return chatViewModel;
+            return model;
         }
 
-        public ChatViewModel DeleteMessage(ChatViewModel chatViewModel, int messageId)
+        public Chat GetChatById(int chatId)
+        {
+            return _chatStorage.GetChatById(chatId);
+        }
+
+        public void DeleteMessage(int messageId)
         {
             var deleteMessage = _messageStorage.GetMessаgeById(messageId);
-            var mesChat = deleteMessage.Chat;
 
             _messageStorage.DeleteMessage(deleteMessage);
-
-            chatViewModel.ChatMessаges = new List<Messаge>();
-
-            var listMessages = _messageStorage.GetMesegesByChat(mesChat.Id);
-
-            if (listMessages is not null)
-            {
-                chatViewModel.ChatMessаges = listMessages;
-            }
-            else
-            {
-                chatViewModel.ChatMessаges = new List<Messаge>();
-            }
-
-            chatViewModel.CheckLiveBackUsers = _chatStorage.GetAllCheckLives(chatViewModel.NewChat.Id);
-
-
-            return chatViewModel;
         }
 
-        public ChatViewModel ExitFromChat(ChatViewModel chatViewModel)
+        public void ExitFromChat(int chatId, string userEmail)
         {
-            chatViewModel.AllChat = _chatStorage.GetAll();
-            chatViewModel.ChatMessаges = _messageStorage.GetMesegesByChat(chatViewModel.NewChat.Id);
-            chatViewModel.CheckLiveBackUsers = _chatStorage.GetAllCheckLives(chatViewModel.NewChat.Id);
-
-            _chatStorage.DeleteUser(chatViewModel.NewChat, chatViewModel.ThisUserEmail);
-
-            chatViewModel.AllChat = _chatStorage.GetAll();
-            chatViewModel.ChatMessаges = _messageStorage.GetMesegesByChat(chatViewModel.NewChat.Id);
-            chatViewModel.CheckLiveBackUsers = _chatStorage.GetAllCheckLives(chatViewModel.NewChat.Id);
-
-            return chatViewModel;
+            _chatStorage.DeleteUser(_chatStorage.GetChatById(chatId), userEmail);
         }
 
-        public ChatViewModel DeleteChat(ChatViewModel chatViewModel)
+        public void DeleteChat(IReadOnlyCollection<Chat> chats, int chatId)
         {
-            var deleteChat = chatViewModel.AllChat.FirstOrDefault(c => c.Id == chatViewModel.NewChat.Id);
+            var deleteChat = chats.FirstOrDefault(c => c.Id == chatId);
 
             _chatStorage.DeleteChat(deleteChat);
-
-            chatViewModel.AllChat = _chatStorage.GetAll();
-
-            return chatViewModel;
         }
 
-        public ChatViewModel SendMessage(ChatViewModel chatViewModel, string messageText, int chatId, string currentUserEmail)
+        public HashSet<ChatBot> SendMessage(HashSet<ChatBot> bots, List<Messаge> messаges, List<CheckLiveBackUser> checkLiveBackUsers, string messageText, int chatId, string currentUserEmail)
         {
-            if (_chatStorage.GetAllCheckLives(chatViewModel.NewChat.Id).Where(check => check.UserEmail.Equals(chatViewModel.ThisUserEmail)).Any(v => v.TimeLeave is not null)) // проверка что пользователь не вышел с чата
-            {
-                var maxCheckLive = _chatStorage
-                    .GetAllCheckLives(chatViewModel.NewChat.Id)
-                    .Where(check => check.UserEmail.Equals(chatViewModel.ThisUserEmail))
-                    .OrderByDescending(c => c.TimeLeave)
-                    .First();
-                var maxCheckCome = _chatStorage
-                    .GetAllCheckLives(chatViewModel.NewChat.Id)
-                    .Where(check => check.UserEmail.Equals(chatViewModel.ThisUserEmail))
-                    .OrderByDescending(c => c.TimeComeIn)
-                    .First();
-
-                if (maxCheckLive.TimeLeave > maxCheckCome.TimeComeIn)
-                {
-                    return chatViewModel;
-                }
-            }
-
             var currentChat = _chatStorage.GetChatById(chatId);
 
-            switch (messageText) //проверка что написали команду боту
+            if (_chatStorage.GetAllCheckLives(chatId).Where(check => check.UserEmail.Equals(currentUserEmail)).Any(v => v.TimeLeave is null) || !currentChat.Name.Contains("#")) // проверка что пользователь не вышел с чата
             {
-                case "/startsharpik":
-                    chatViewModel.Bots.Add(new ChatBot(currentChat, "Sharpik"));
-                    return chatViewModel;
-                case "/endsharpik":
-                    var chatbot = chatViewModel.Bots.FirstOrDefault(b => b.BotName == "Sharpik" && b.Chat.Id == currentChat.Id);
-                    chatViewModel.Bots.Remove(chatbot);
-                    return chatViewModel;
-                case "/startzhabist":
-                    chatViewModel.Bots.Add(new ChatBot(currentChat, "Zhabist"));
-                    return chatViewModel;
-                case "/endzhabist":
-                    var chatbot2 = chatViewModel.Bots.FirstOrDefault(b => b.BotName == "Zhabist" && b.Chat.Id == currentChat.Id);
-                    chatViewModel.Bots.Remove(chatbot2);
-                    return chatViewModel;
-            }
-
-            var newMessage = new Messаge();
-
-            newMessage.MesegeTime = DateTime.Now.ToString();
-            newMessage.UserEmail = currentUserEmail;
-            newMessage.MessageText = messageText;
-            newMessage.Chat = currentChat;
-
-            _messageStorage.AddMessage(newMessage);
-
-            var chatBots = chatViewModel.Bots.Where(cb => cb.Chat.Id == currentChat.Id).ToList();
-
-            if (chatBots is not null)
-            {
-                foreach (var b in chatBots)
+                switch (messageText) //проверка что написали команду боту
                 {
-                    if (b.BotName.Equals("Sharpik"))
+                    case "/startsharpik":
+                        bots.Add(new ChatBot(currentChat, "Sharpik"));
+                        return bots;
+                    case "/endsharpik":
+                        var chatbot = bots.FirstOrDefault(b => b.BotName == "Sharpik" && b.Chat.Id == currentChat.Id);
+                        bots.Remove(chatbot);
+                        return bots;
+                    case "/startzhabist":
+                        bots.Add(new ChatBot(currentChat, "Zhabist"));
+                        return bots;
+                    case "/endzhabist":
+                        var chatbot2 = bots.FirstOrDefault(b => b.BotName == "Zhabist" && b.Chat.Id == currentChat.Id);
+                        bots.Remove(chatbot2);
+                        return bots;
+                }
+
+                var newMessage = new Messаge();
+
+                newMessage.MesegeTime = DateTime.Now.ToString();
+                newMessage.UserEmail = currentUserEmail;
+                newMessage.MessageText = messageText;
+                newMessage.Chat = currentChat;
+
+                _messageStorage.AddMessage(newMessage);
+
+                var chatBots = bots.Where(cb => cb.Chat.Id == currentChat.Id).ToList();
+
+                if (chatBots is not null)
+                {
+                    foreach (var b in chatBots)
                     {
-                        var botMessege = new Messаge();
-                        var sharpAnswer = new StringBuilder();
-
-                        SharpikBot.SharpikStart(messageText, sharpAnswer);
-
-                        botMessege.MessageText = sharpAnswer.ToString();
-                        botMessege.Chat = currentChat;
-                        botMessege.MesegeTime = DateTime.Now.ToString();
-                        botMessege.UserEmail = "Sharpik";
-                        botMessege.Id = null;
-
-                        _messageStorage.AddMessage(botMessege);
-                    }
-                    if (b.BotName.Equals("Zhabist"))
-                    {
-                        var textFromBot = ZhabistBot.ZhabistStart(messageText);
-
-                        if (textFromBot is not null)
+                        if (b.BotName.Equals("Sharpik"))
                         {
                             var botMessege = new Messаge();
                             var sharpAnswer = new StringBuilder();
 
-                            botMessege.MessageText = textFromBot;
+                            SharpikBot.SharpikStart(messageText, sharpAnswer);
+
+                            botMessege.MessageText = sharpAnswer.ToString();
                             botMessege.Chat = currentChat;
                             botMessege.MesegeTime = DateTime.Now.ToString();
-                            botMessege.UserEmail = "Zhabist";
+                            botMessege.UserEmail = "Sharpik";
                             botMessege.Id = null;
 
                             _messageStorage.AddMessage(botMessege);
                         }
+                        if (b.BotName.Equals("Zhabist"))
+                        {
+                            var textFromBot = ZhabistBot.ZhabistStart(messageText);
+
+                            if (textFromBot is not null)
+                            {
+                                var botMessege = new Messаge();
+                                var sharpAnswer = new StringBuilder();
+
+                                botMessege.MessageText = textFromBot;
+                                botMessege.Chat = currentChat;
+                                botMessege.MesegeTime = DateTime.Now.ToString();
+                                botMessege.UserEmail = "Zhabist";
+                                botMessege.Id = null;
+
+                                _messageStorage.AddMessage(botMessege);
+                            }
+                        }
                     }
                 }
+
+                messаges = new List<Messаge>();
             }
 
-            chatViewModel.ChatMessаges = new List<Messаge>();
-
-            var listMessages = _messageStorage.GetMesegesByChat(newMessage.Chat.Id);
-
-            if (listMessages is not null)
-            {
-                chatViewModel.ChatMessаges = listMessages;
-            }
-            else
-            {
-                chatViewModel.ChatMessаges = new List<Messаge>();
-            }
-
-            chatViewModel.CheckLiveBackUsers = _chatStorage.GetAllCheckLives(chatViewModel.NewChat.Id);
-
-            return chatViewModel;
+            return bots;
         }
 
-        public ChatViewModel CreateChat(ChatViewModel chatViewModel, string userId, string currentUserEmail, User secondUser)
+        public ChatViewModel CreateChat(string userId, string currentUserEmail, User secondUser)
         {
-            chatViewModel.AllChat = _chatStorage.GetAll();
+            var model = new ChatViewModel();
+            model.AllChat = _chatStorage.GetAll();
 
             var newCHat = new Chat();
 
@@ -229,39 +180,38 @@ namespace WebChat.Services
 
             _chatStorage.AddChat(newCHat);
 
-            chatViewModel.ChatMessаges = new List<Messаge>();
-            chatViewModel.Bots = new HashSet<ChatBot>();
-            chatViewModel.ChatMessаges = _messageStorage.GetMesegesByChat(newCHat.Id);
+            model.ChatMessаges = new List<Messаge>();
+            model.Bots = new HashSet<ChatBot>();
+            model.ChatMessаges = _messageStorage.GetMessagesByChat(newCHat.Id);
 
-            chatViewModel.NewChat = _chatStorage.GetChatByUsers(newCHat.Users);
-            chatViewModel.CurrentChat = userId;
-            chatViewModel.ThisUserEmail = currentUserEmail;
+            model.NewChat = _chatStorage.GetChatByUsers(newCHat.Users);
+            model.CurrentChat = userId;
+            model.ThisUserEmail = currentUserEmail;
 
-            return chatViewModel;
+            return model;
         }
 
-        public ChatViewModel AddUserToChat(ChatViewModel chatViewModel, string userName)
+        public void AddUserToChat(ChatViewModel model, string userName)
         {
-            var chat = chatViewModel.AllChat.FirstOrDefault(c => c.Id == chatViewModel.NewChat.Id);
+            var chatId = model.NewChat.Id;
+            var chat = model.AllChat.FirstOrDefault(c => c.Id == chatId);
 
             if (!chat.Users.Contains(userName))
             {
                 _chatStorage.AddUser(chat, userName);
-
-                chatViewModel.NewChat.Users = chatViewModel.NewChat.Users + " " + userName;
             }
             else
             {
-                var checkLives = _chatStorage.GetAllCheckLives(chatViewModel.NewChat.Id).Where(ch => ch.Chat.Id == chat.Id && ch.UserEmail == userName).OrderByDescending(c => c.TimeComeIn).First();
+                var checkLives = _chatStorage.GetAllCheckLives(chatId).Where(ch => ch.Chat.Id == chat.Id && ch.UserEmail == userName).OrderByDescending(c => c.TimeComeIn).First();
 
                 if (checkLives.TimeLeave is not null)
                 {
-                    _chatStorage.AddCheckLive(chatViewModel.NewChat, userName);
+                    _chatStorage.AddCheckLive(chat, userName);
 
                     var systemMessage = new Messаge();
 
                     systemMessage.MessageText = "Пользователь " + userName + " вернулся в чат";
-                    systemMessage.Chat = _chatStorage.GetChatById(chat.Id);
+                    systemMessage.Chat = _chatStorage.GetChatById(chatId);
                     systemMessage.MesegeTime = DateTime.Now.ToString();
                     systemMessage.UserEmail = "System";
                     systemMessage.Id = null;
@@ -269,18 +219,13 @@ namespace WebChat.Services
                     _messageStorage.AddMessage(systemMessage);
                 }
             }
-            chatViewModel.ChatMessаges = _messageStorage.GetMesegesByChat(chatViewModel.NewChat.Id);
-            chatViewModel.AllChat = _chatStorage.GetAll();
-            chatViewModel.CheckLiveBackUsers = _chatStorage.GetAllCheckLives(chatViewModel.NewChat.Id);
-
-            return chatViewModel;
         }
 
-        public ChatViewModel GroupDialogue(ChatViewModel chatViewModel)
+        public List<Messаge> GroupDialogue(List<Messаge> chatMessages, List<CheckLiveBackUser> checkLiveBackUsers, int chatId, string userEmail)
         {
-            chatViewModel.CheckLiveBackUsers = _chatStorage.GetAllCheckLives(chatViewModel.NewChat.Id);
+            checkLiveBackUsers = _chatStorage.GetAllCheckLives(chatId).ToList();
 
-            var chatChecks = chatViewModel.CheckLiveBackUsers.Where(ch => ch.Chat.Id == chatViewModel.NewChat.Id && ch.UserEmail.Equals(chatViewModel.ThisUserEmail)).ToList();
+            var chatChecks = checkLiveBackUsers.Where(ch => ch.Chat.Id == chatId && ch.UserEmail.Equals(userEmail)).ToList();
 
             var newChatMessages = new List<Messаge>();
 
@@ -288,25 +233,30 @@ namespace WebChat.Services
             {
                 if (chatCheck.TimeLeave is not null)
                 {
-                    newChatMessages.AddRange(chatViewModel.ChatMessаges.Where(cm => DateTime.Parse(cm.MesegeTime) > chatCheck.TimeComeIn && DateTime.Parse(cm.MesegeTime) < chatCheck.TimeLeave).ToList());
+                    newChatMessages.AddRange(chatMessages.Where(cm => DateTime.Parse(cm.MesegeTime) > chatCheck.TimeComeIn && DateTime.Parse(cm.MesegeTime) < chatCheck.TimeLeave).ToList());
                 }
                 else
                 {
-                    newChatMessages.AddRange(chatViewModel.ChatMessаges.Where(cm => DateTime.Parse(cm.MesegeTime) > chatCheck.TimeComeIn).ToList());
+                    newChatMessages.AddRange(chatMessages.Where(cm => DateTime.Parse(cm.MesegeTime) > chatCheck.TimeComeIn).ToList());
                 }
             }
 
-            chatViewModel.ChatMessаges = newChatMessages;
-
-            return chatViewModel;
+            return newChatMessages;
         }
 
-        public ChatViewModel Index(ChatViewModel chatViewModel, string currentUserEmail)
+        public List<Chat> GetAllGroupChats(string userEmail)
         {
-            chatViewModel.ThisUserEmail = currentUserEmail;
-            chatViewModel.AllChat = _chatStorage.GetAll();
+            return _chatStorage.GetAll(userEmail).ToList();
+        }
 
-            return chatViewModel;
+        public List<Messаge> GetMessаgesByChat(int chatId) 
+        {
+            return _messageStorage.GetMessagesByChat(chatId);
+        }
+
+        public List<CheckLiveBackUser> GetCheckLiveBackUsersByChat(int chatId)
+        {
+            return _chatStorage.GetAllCheckLives(chatId).ToList();
         }
     }
 }
